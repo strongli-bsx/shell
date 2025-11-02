@@ -27,22 +27,6 @@
 #define     SHELL_TASK_WHILE            1
 #endif /** SHELL_TASK_WHILE */
 
-#ifndef SHELL_USING_CMD_EXPORT
-/**
- * @brief 是否使用命令导出方式
- *        使能此宏后，可以使用`SHELL_EXPORT_CMD()`等导出命令
- *        定义shell命令，关闭此宏的情况下，需要使用命令表的方式
- */
-#define     SHELL_USING_CMD_EXPORT      1
-#endif /** SHELL_USING_CMD_EXPORT */
-
-#ifndef SHELL_USING_COMPANION
-/**
- * @brief 是否使用shell伴生对象
- *        一些扩展的组件(文件系统支持，日志工具等)需要使用伴生对象
- */
-#define     SHELL_USING_COMPANION       0
-#endif /** SHELL_USING_COMPANION */
 
 #ifndef SHELL_SUPPORT_END_LINE
 /**
@@ -103,14 +87,6 @@
 #define     SHELL_ENTER_CRLF            0
 #endif /** SHELL_ENTER_CRLF */
 
-#ifndef SHELL_EXEC_UNDEF_FUNC
-/**
- * @brief 使用执行未导出函数的功能
- *        启用后，可以通过`exec [addr] [args]`直接执行对应地址的函数
- * @attention 如果地址错误，可能会直接引起程序崩溃
- */
-#define     SHELL_EXEC_UNDEF_FUNC       0
-#endif /** SHELL_EXEC_UNDEF_FUNC */
 
 #ifndef SHELL_PARAMETER_MAX_NUMBER
 /**
@@ -193,22 +169,6 @@
 #define     SHELL_USING_LOCK            0
 #endif /** SHELL_USING_LOCK */
 
-#ifndef SHELL_MALLOC
-/**
- * @brief shell内存分配
- *        shell本身不需要此接口，若使用shell伴生对象，需要进行定义
- */
-#define     SHELL_MALLOC(size)          0
-#endif /** SHELL_MALLOC */
-
-#ifndef SHELL_FREE
-/**
- * @brief shell内存释放
- *        shell本身不需要此接口，若使用shell伴生对象，需要进行定义
- */
-#define     SHELL_FREE(obj)             0
-#endif /** SHELL_FREE */
-
 #ifndef SHELL_SHOW_INFO
 /**
  * @brief 是否显示shell信息
@@ -247,23 +207,5 @@
  */
 #define     SHELL_LOCK_TIMEOUT          0 * 60 * 1000
 #endif /** SHELL_LOCK_TIMEOUT */
-
-#ifndef SHELL_USING_FUNC_SIGNATURE
-/**
- * @brief 使用函数签名
- *        使能后，可以在声明命令时，指定函数的签名，shell 会根据函数签名进行参数转换，
- *        而不是自动判断参数的类型，如果参数和函数签名不匹配，会停止执行命令
- */
-#define     SHELL_USING_FUNC_SIGNATURE  0
-#endif /** SHELL_USING_FUNC_SIGNATURE */
-
-#ifndef SHELL_SUPPORT_ARRAY_PARAM
-/**
- * @brief 支持数组参数
- *        使能后，可以在命令中使用数组参数，如`cmd [1,2,3]`
- *        需要使能 `SHELL_USING_FUNC_SIGNATURE` 宏，并且配置 `SHELL_MALLOC`, `SHELL_FREE`
- */
-#define     SHELL_SUPPORT_ARRAY_PARAM   0
-#endif /** SHELL_SUPPORT_ARRAY_PARAM */
 
 #endif

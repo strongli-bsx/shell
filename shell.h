@@ -34,7 +34,7 @@ typedef enum {
     SHELL_TYPE_VAR_NODE,                   /**< node */
     SHELL_TYPE_USER,                       /**< user */
     SHELL_TYPE_KEY,                        /**< key */
-} shell_cmd_type_e;
+} SHELL_CMD_TYPE_E;
 
 /*! shell text enum */
 enum {
@@ -64,7 +64,7 @@ enum {
 /*! shell assert */
 #define SHELL_ASSERT(expr) \
         if(!(expr)) {                                                         \
-            shell_printf("Assert failed: %s, line %d\n", __FILE__, __LINE__); \
+            shell_print("Assert failed: %s, line %d\n", __FILE__, __LINE__); \
             while(1) {                                                        \
             }                                                                 \
         }
@@ -252,7 +252,7 @@ typedef struct shell_command {
     union {
         struct {
             uint8_t permission : 8;          /**< command authority */
-            shell_cmd_type_e type : 4;       /**< command type */
+            SHELL_CMD_TYPE_E type : 4;       /**< command type */
             uint8_t enable_unchecked : 1;    /**< enable with unchecked */
             uint8_t disable_return : 1;      /**< disable return value */
             uint8_t read_only : 1;           /**< read only */
@@ -313,5 +313,10 @@ void shell_write_end_line(shell_t *shell, char *buffer, int len);
 void shell_task(void *param);
 int shell_run(shell_t *shell, const char *cmd);
 shell_t *shell_get_current(void);
+int shell_get_var_value(shell_t *shell, shell_cmd_t *command);
+shell_cmd_t *shell_seek_cmd(shell_t *shell,
+                            const char *cmd,
+                            shell_cmd_t *base,
+                            uint16_t compare_length);
 
 #endif/**< __SHELL_H__ */

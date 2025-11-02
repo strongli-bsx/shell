@@ -14,106 +14,16 @@
 #include "shell_ext.h"
 #include "string.h"
 
-extern ShellCommand* shellSeekCommand(Shell *shell,
-                                      const char *cmd,
-                                      ShellCommand *base,
-                                      unsigned short compareLength);
-extern int shellGetVarValue(Shell *shell, ShellCommand *command);
-
-#if SHELL_SUPPORT_ARRAY_PARAM == 1
-extern int shellSplit(char *string, unsigned short strLen, char *array[], char splitKey, short maxNum);
-
-static int shellExtParseArray(Shell *shell, char *string, char *type, size_t *result);
-static int shellExtCleanerArray(Shell *shell, char *type, void *param);
-#endif /** SHELL_SUPPORT_ARRAY_PARAM == 1 */
-
-#if SHELL_USING_FUNC_SIGNATURE == 1
-/**
- * @brief 获取下一个参数类型
- * 
- * @param signature 函数签名
- * @param index 参数遍历在签名中的起始索引
- * @param type 获取到的参数类型
- * 
- * @return int 下一个参数在签名中的索引
- */
-static int shellGetNextParamType(const char *signature, int index, char *type)
-{
-    const char *p = signature + index;
-#if SHELL_SUPPORT_ARRAY_PARAM == 1
-    if (*p == '[')
-    {
-        *type++ = *p++;
-        index++;
-    }
-#endif /** SHELL_SUPPORT_ARRAY_PARAM == 1 */
-    if (*p == 'L')
-    {
-        while (*p != ';' && *p != 0)
-        {
-            *type++ = *p++;
-            index++;
-        }
-        *type++ = *p++;
-        index++;
-    }
-    else if (*p != 0)
-    {
-        *type++ = *p;
-        index++;
-    }
-    *type = '\0';
-    return index;
-}
-
-/**
- * @brief 获取期待的参数个数
- * 
- * @param signature 函数签名
- * 
- * @return int 参数个数
- */
-static int shellGetParamNumExcept(const char *signature)
-{
-    int num = 0;
-    const char *p = signature;
-    
-    while (*p)
-    {
-    #if SHELL_SUPPORT_ARRAY_PARAM == 1
-        if (*p == '[')
-        {
-            p++;
-        }
-    #endif /** SHELL_SUPPORT_ARRAY_PARAM == 1 */
-        if (*p == 'L')
-        {
-            while (*p != ';' && *p != 0)
-            {
-                p++;
-            }
-            p++;
-        }
-        else
-        {
-            p++;
-        }
-        num++;
-    }
-    return num;
-}
-#endif
-
 /**
  * @brief 判断数字进制
  * 
  * @param string 参数字符串
- * @return ShellNumType 进制
+ * @return SHELL_NUM_TYPE_E 进制
  */
-static ShellNumType shellExtNumType(char *string)
+static SHELL_NUM_TYPE_E shell_ext_num_type(char *string)
 {
     char *p = string;
-    ShellNumType type = NUM_TYPE_DEC;
+    SHELL_NUM_TYPE_E type = NUM_TYPE_DEC;
 
     if ((*p == '0') && ((*(p + 1) == 'x') || (*(p + 1) == 'X')))
     {
@@ -147,7 +57,7 @@ static ShellNumType shellExtNumType(char *string)
  * @param code 字符
  * @return char 数字
  */
-static char shellExtToNum(char code)
+static char shell_ext_char_to_num(char code)
 {
     if ((code >= '0') && (code <= '9'))
     {
@@ -174,7 +84,7 @@ static char shellExtToNum(char code)
  * @param string 字符串参数
  * @return char 解析出的字符
  */
-static char shellExtParseChar(char *string)
+static char shell_ext_parse_char(char *string)
 {
     char *p = (*string == '\'') ? (string + 1) : string;
     char value = 0;
@@ -217,7 +127,7 @@ static char shellExtParseChar(char *string)
  * @param string 字符串参数
  * @return char* 解析出的字符串
  */
-static char* shellExtParseString(char *string)
+static char* shell_ext_parse_string(char *string)
 {
     char *p = string;
     unsigned short index = 0;
@@ -231,7 +141,7 @@ static char* shellExtParseString(char *string)
     {
         if (*p == '\\')
         {
-            *(string + index) = shellExtParseChar(p);
+            *(string + index) = shell_ext_parse_char(p);
             p++;
         }
         else if (*p == '\"')
@@ -256,15 +166,15 @@ static char* shellExtParseString(char *string)
  * @param string 字符串参数
  * @return size_t 解析出的数字
  */
-static size_t shellExtParseNumber(char *string)
+static size_t shell_ext_parse_number(char *string)
 {
-    ShellNumType type = NUM_TYPE_DEC;
+    SHELL_NUM_TYPE_E type = NUM_TYPE_DEC;
     char radix = 10;
     char *p = string;
     char offset = 0;
     signed char sign = 1;
-    size_t valueInt = 0;
-    float valueFloat = 0.0;
+    size_t value_int = 0;
+    float value_float = 0.0;
     size_t devide = 0;
 
     if (*string == '-')
@@ -272,7 +182,7 @@ static size_t shellExtParseNumber(char *string)
         sign = -1;
     }
 
-    type = shellExtNumType(string + ((sign == -1) ? 1 : 0));
+    type = shell_ext_num_type(string + ((sign == -1) ? 1 : 0));
 
     switch ((char)type)
     {
@@ -305,18 +215,18 @@ static size_t shellExtParseNumber(char *string)
             p++;
             continue;
         }
-        valueInt = valueInt * radix + shellExtToNum(*p);
+        value_int = value_int * radix + shell_ext_char_to_num(*p);
         devide *= 10;
         p++;
     }
     if (type == NUM_TYPE_FLOAT && devide != 0)
     {
-        valueFloat = (float)valueInt / devide * sign;
-        return *(size_t *)(&valueFloat);
+        value_float = (float)value_int / devide * sign;
+        return *(size_t *)(&value_float);
     }
     else
     {
-        return valueInt * sign;
+        return value_int * sign;
     }
 }
 
@@ -330,15 +240,15 @@ static size_t shellExtParseNumber(char *string)
  *
  * @return int 0 解析成功 --1 解析失败
  */
-static int shellExtParseVar(Shell *shell, char *var, size_t *result)
+static int shell_ext_parse_var(shell_t *shell, char *var, size_t *result)
 {
-    ShellCommand *command = shellSeekCommand(shell,
+    shell_cmd_t *command = shell_seek_cmd(shell,
                                              var + 1,
-                                             shell->commandList.base,
+                                             shell->command_list.base,
                                              0);
     if (command)
     {
-        *result = shellGetVarValue(shell, command);
+        *result = shell_get_var_value(shell, command);
         return 0;
     }
     else
@@ -358,282 +268,32 @@ static int shellExtParseVar(Shell *shell, char *var, size_t *result)
  * 
  * @return int 0 解析成功 --1 解析失败
  */
-int shellExtParsePara(Shell *shell, char *string, char *type, size_t *result)
+static int shell_ext_parse_para(shell_t *shell, char *string, char *type, size_t *result)
 {
     if (type == NULL || (*string == '$' && *(string + 1)))
     {
         if (*string == '\'' && *(string + 1))
         {
-            *result = (size_t)shellExtParseChar(string);
+            *result = (size_t)shell_ext_parse_char(string);
             return 0;
         }
         else if (*string == '-' || (*string >= '0' && *string <= '9'))
         {
-            *result = shellExtParseNumber(string);
+            *result = shell_ext_parse_number(string);
             return 0;
         }
         else if (*string == '$' && *(string + 1))
         {
-            return shellExtParseVar(shell, string, result);
+            return shell_ext_parse_var(shell, string, result);
         }
         else if (*string)
         {
-            *result = (size_t)shellExtParseString(string);
+            *result = (size_t)shell_ext_parse_string(string);
             return 0;
-        }
-    }
-#if SHELL_USING_FUNC_SIGNATURE == 1
-    else
-    {
-        if (*string == '$' && *(string + 1))
-        {
-            return shellExtParseVar(shell, string, result);
-        }
-    #if SHELL_SUPPORT_ARRAY_PARAM == 1
-        else if (type[0] == '[')
-        {
-            return shellExtParseArray(shell, string, type, result);
-        }
-    #endif /** SHELL_SUPPORT_ARRAY_PARAM == 1 */
-        else if (strcmp("c", type) == 0)
-        {
-            *result = (size_t)shellExtParseChar(string);
-            return 0;
-        }
-        else if (strcmp("q", type) == 0
-                 || strcmp("h", type) == 0
-                 || strcmp("i", type) == 0
-                 || strcmp("f", type) == 0
-                 || strcmp("p", type) == 0)
-        {
-            *result = shellExtParseNumber(string);
-            return 0;
-        }
-        else if (strcmp("s", type) == 0)
-        {
-            *result = (size_t)shellExtParseString(string);
-            return 0;
-        }
-        else
-        {
-            ShellCommand *command = shellSeekCommand(shell,
-                                                     type,
-                                                     shell->commandList.base,
-                                                     0);
-            if (command != NULL)
-            {
-                void *param;
-                if (command->data.paramParser.parser(shellExtParseString(string), &param) == 0)
-                {
-                    *result = (size_t)param;
-                    return 0;
-                }
-                else
-                {
-                    shellWriteString(shell, "Parse param for type: ");
-                    shellWriteString(shell, type);
-                    shellWriteString(shell, " failed\r\n");
-                    return -1;
-                }
-            }
-            else
-            {
-                shellWriteString(shell, "Can't find the param parser for type: ");
-                shellWriteString(shell, type);
-                shellWriteString(shell, "\r\n");
-                return -1;
-            }
-        }
-    }
-#endif /** SHELL_USING_FUNC_SIGNATURE == 1 */
-    return -1;
-}
-
-
-#if SHELL_USING_FUNC_SIGNATURE == 1
-/**
- * @brief 清理参数
- * 
- * @param shell shell 
- * @param type 参数类型
- * @param param 参数
- * 
- * @return int 0 清理成功 -1 清理失败
- */
-int shellExtCleanerPara(Shell *shell, char *type, size_t param)
-{
-    if (type == NULL)
-    {
-        return 0;
-    }
-    else
-    {
-    #if SHELL_SUPPORT_ARRAY_PARAM == 1
-        if (type[0] == '[') {
-            return shellExtCleanerArray(shell, type, (void *) param);
-        }
-        else
-    #endif /** SHELL_SUPPORT_ARRAY_PARAM == 1 */
-        if (strcmp("c", type) == 0
-            || strcmp("q", type) == 0
-            || strcmp("h", type) == 0
-            || strcmp("i", type) == 0
-            || strcmp("f", type) == 0
-            || strcmp("p", type) == 0
-            || strcmp("s", type) == 0)
-        {
-            return 0;
-        }
-        else
-        {
-            ShellCommand *command = shellSeekCommand(shell,
-                                                     type,
-                                                     shell->commandList.base,
-                                                     0);
-            if (command != NULL && command->data.paramParser.cleaner != NULL)
-            {
-                return command->data.paramParser.cleaner((void *)param);
-            }
         }
     }
     return -1;
 }
-#endif /** SHELL_USING_FUNC_SIGNATURE == 1 */
-
-#if SHELL_SUPPORT_ARRAY_PARAM == 1
-/**
- * @brief 估算数组长度
- * 
- * @param string 数组参数
- * 
- * @return int 估算的数组长度
- */
-static int shellEstimateArrayLength(char *string)
-{
-    int length = 0;
-    char *p = string;
-    while (*p)
-    {
-        if (*p == ',')
-        {
-            length++;
-        }
-        p++;
-    }
-    return length + 1;
-}
-
-/**
- * @brief 分割数组参数
- * 
- * @param string 数组参数
- * @param array 分割后的字符串数组
- * 
- * @return int 数组长度
- */
-static int shellSplitArray(char *string, char ***array)
-{
-    int strLen = strlen(string);
-    if (string[strLen - 1] == ']')
-    {
-        string[--strLen] = 0;
-    }
-    if (string[0] == '[')
-    {
-        --strLen;
-        string++;
-    }
-    int size = shellEstimateArrayLength(string);
-    *array = SHELL_MALLOC(size * sizeof(char *));
-    return shellSplit(string, strLen, *array, ',', size);
-}
-
-/**
- * @brief 解析数组参数
- * 
- * @param shell shell 对象
- * @param string 数组参数
- * @param type 参数类型
- * @param result 解析结果
- * 
- * @return int 0 解析成功 -1 解析失败
- */
-static int shellExtParseArray(Shell *shell, char *string, char *type, size_t *result)
-{
-    char **params;
-    int size = shellSplitArray(string, &params);
-    int elementBytes = sizeof(void *);
-
-    if (strcmp(type + 1, "q") == 0)
-    {
-        elementBytes = sizeof(char);
-    }
-    else if (strcmp(type + 1, "h") == 0)
-    {
-        elementBytes = sizeof(short);
-    }
-    else if (strcmp(type + 1, "i") == 0)
-    {
-        elementBytes = sizeof(int);
-    }
-
-    ShellArrayHeader *header = SHELL_MALLOC(elementBytes * size + sizeof(ShellArrayHeader));
-    *result = (size_t) ((size_t) header + sizeof(ShellArrayHeader));
-    header->size = size;
-    header->elementBytes = elementBytes;
-    for (short i = 0; i < size; i++)
-    {
-        size_t value;
-        if (shellExtParsePara(shell, params[i], type + 1, &value) != 0)
-        {
-            SHELL_FREE(header);
-            SHELL_FREE(params);
-            return -1;
-        }
-        memcpy((void *) ((size_t) *result + elementBytes * i), &value, elementBytes);
-    }
-
-    SHELL_FREE(params);
-    return 0;
-}
-
-/**
- * @brief 清理数组参数
- * 
- * @param shell shell 对象
- * @param type 参数类型
- * @param param 参数
- * 
- * @return int 0 清理成功 -1 清理失败
- */
-static int shellExtCleanerArray(Shell *shell, char *type, void *param)
-{
-    ShellArrayHeader *header = (ShellArrayHeader *) ((size_t) param - sizeof(ShellArrayHeader));
-    for (short i = 0; i < header->size; i++)
-    {
-        if (shellExtCleanerPara(shell, type + 1, *(size_t *) ((size_t) param + header->elementBytes * i)) != 0)
-        {
-            return -1;
-        }
-    }
-    SHELL_FREE(header);
-    return 0;
-}
-
-/**
- * @brief 获取数组大小
- * 
- * @param param 数组
- * 
- * @return int 数组大小
- */
-int shellGetArrayParamSize(void *param)
-{
-    ShellArrayHeader *header = (ShellArrayHeader *) ((size_t) param - sizeof(ShellArrayHeader));
-    return header->size;
-}
-#endif /** SHELL_SUPPORT_ARRAY_PARAM == 1 */
-
 
 /**
  * @brief 执行命令
@@ -644,47 +304,23 @@ int shellGetArrayParamSize(void *param)
  * @param argv 参数
  * @return int 返回值
  */
-int shellExtRun(Shell *shell, ShellCommand *command, int argc, char *argv[])
+int shell_ext_run(shell_t *shell, shell_cmd_t *command, int argc, char *argv[])
 {
     int ret = 0;
     size_t params[SHELL_PARAMETER_MAX_NUMBER] = {0};
-    int paramNum = command->attr.attrs.paramNum > (argc - 1) ? 
-        command->attr.attrs.paramNum : (argc - 1);
-#if SHELL_USING_FUNC_SIGNATURE == 1
-    char type[16];
-    int index = 0;
-    
-    if (command->data.cmd.signature != NULL)
-    {
-        int except = shellGetParamNumExcept(command->data.cmd.signature);
-        if (except != argc - 1)
-        {
-            shellWriteString(shell, "Parameters number incorrect\r\n");
-            return -1;
-        }
-    }
-#endif
+    int param_number = command->attr.para.param_num > (argc - 1) ? 
+        command->attr.para.param_num : (argc - 1);
     int i;
     for ( i = 0; i < argc - 1; i++)
     {
-    #if SHELL_USING_FUNC_SIGNATURE == 1
-        if (command->data.cmd.signature != NULL) {
-            index = shellGetNextParamType(command->data.cmd.signature, index, type);
-            if (shellExtParsePara(shell, argv[i + 1], type, &params[i]) != 0)
-            {
-                return -1;
-            }
-        }
-        else
-    #endif /** SHELL_USING_FUNC_SIGNATURE == 1 */
         {
-            if (shellExtParsePara(shell, argv[i + 1], NULL, &params[i]) != 0)
+            if (shell_ext_parse_para(shell, argv[i + 1], NULL, &params[i]) != 0)
             {
                 return -1;
             }
         }
     }
-    switch (paramNum)
+    switch (param_number)
     {
 #if SHELL_PARAMETER_MAX_NUMBER >= 1
     case 0:
@@ -833,17 +469,6 @@ int shellExtRun(Shell *shell, ShellCommand *command, int argc, char *argv[])
         break;
     }
     
-#if SHELL_USING_FUNC_SIGNATURE == 1
-    if (command->data.cmd.signature != NULL) {
-        index = 0;
-        for (int i = 0; i < argc - 1; i++)
-        {
-            index = shellGetNextParamType(command->data.cmd.signature, index, type);
-            shellExtCleanerPara(shell, type, params[i]);
-        }
-    }
-#endif /** SHELL_USING_FUNC_SIGNATURE == 1 */
-
     return ret;
 }
 

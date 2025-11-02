@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "shell.h"
-/* #include "shell_ext.h" */
+#include "shell_ext.h"
 #include "shell_cfg.h"
 
 /*-----------------------------------------------------------------------------*/
@@ -125,11 +125,7 @@ static void shell_add(shell_t *shell);
 static void shell_write_prompt(shell_t *shell, uint8_t newline);
 static void shell_write_return_value(shell_t *shell, int value);
 static int shell_show_var(shell_t *shell, shell_cmd_t *command);
-void shell_set_user(shell_t *shell, const shell_cmd_t *user);
-shell_cmd_t *shell_seek_cmd(shell_t *shell,
-                            const char *cmd,
-                            shell_cmd_t *base,
-                            uint16_t compareLength);
+static void shell_set_user(shell_t *shell, const shell_cmd_t *user);
 static void shell_write_cmd_help(shell_t *shell, char *cmd);
 /*-----------------------------------------------------------------------------*/
 /*-----------------------------------------------------------------------------*/
@@ -288,7 +284,7 @@ static void shell_write_prompt(shell_t *shell, uint8_t newline)
  * @param[in]  fmt  : format string
  * -----------------------------------------------
  */
-void shell_printf(shell_t *shell, const char *fmt, ...)
+void shell_print(shell_t *shell, const char *fmt, ...)
 {
     char buffer[SHELL_PRINT_BUFFER];
     va_list vargs;
@@ -962,7 +958,7 @@ static void shell_remove_param_quotes(shell_t *shell)
 shell_cmd_t *shell_seek_cmd(shell_t *shell,
                             const char *cmd,
                             shell_cmd_t *base,
-                            uint16_t compareLength)
+                            uint16_t compare_length)
 {
     const char *name;
     uint16_t count = shell->command_list.count -
@@ -974,12 +970,12 @@ shell_cmd_t *shell_seek_cmd(shell_t *shell,
             continue;
         }
         name = shell_get_command_name(&base[i]);
-        if(!compareLength) {
+        if(!compare_length) {
             if(strcmp(cmd, name) == 0) {
                 return &base[i];
             }
         } else {
-            if(strncmp(cmd, name, compareLength) == 0) {
+            if(strncmp(cmd, name, compare_length) == 0) {
                 return &base[i];
             }
         }
@@ -1197,7 +1193,7 @@ unsigned int shell_run_command(shell_t *shell, shell_cmd_t *command)
     }
     else if (command->attr.para.type == SHELL_TYPE_CMD_FUNC)
     {
-        returnValue = shellExtRun(shell,
+        returnValue = shell_ext_run(shell,
                                   command,
                                   shell->parser.param_count,
                                   shell->parser.param);
@@ -1246,7 +1242,7 @@ static void shell_check_password(shell_t *shell)
  * @param[in]  user :  
  * -----------------------------------------------
  */
-void shell_set_user(shell_t *shell, const shell_cmd_t *user)
+static void shell_set_user(shell_t *shell, const shell_cmd_t *user)
 {
     shell->info.sh_cmd = user;
     shell->status.is_checked =
@@ -1723,6 +1719,33 @@ SHELL_EXPORT_CMD(
     SHELL_CMD_PERMISSION(0) | SHELL_CMD_TYPE(
         SHELL_TYPE_CMD_MAIN) | SHELL_CMD_DISABLE_RETURN,
     help, shell_help, show command info);
+
+
+#if SHELL_SUPPORT_END_LINE == 1
+void shellWriteEndLine(shell_t *shell, char *buffer, int len)
+{
+    SHELL_LOCK(shell);
+    if (!shell->status.is_active)
+    {
+        shell_write_string(shell, shell_text[SHELL_TEXT_CLEAR_LINE]);
+    }
+    shell->write(buffer, len);
+
+    if (!shell->status.is_active)
+    {
+        shell_write_prompt(shell, 0);
+        if (shell->parser.length > 0)
+        {
+            shell_write_string(shell, shell->parser.buffer);
+            for (short i = 0; i < shell->parser.length - shell->parser.cursor; i++)
+            {
+                shell_write_byte(shell, '\b');
+            }
+        }
+    }
+    SHELL_UNLOCK(shell);
+}
+#endif /** SHELL_SUPPORT_END_LINE == 1 */
 
 /**
  * -----------------------------------------------
