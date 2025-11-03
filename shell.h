@@ -3,14 +3,15 @@
  * \file      shell.c
  * \brief     shell func realize
  * \version   1.1
- * \author    Letter(NevermindZZT@gmail.com), awesome
+ * \author    Letter(NevermindZZT@gmail.com), Awesome
  * \copyright (c) Letter, 2020
- * \copyright (c) 2025, AWESOME
+ * \copyright (c) 2025, Awesome
  * ********************************************************
  * \note      revision note
  * |   Date    |  version  |  author   | Description  
  * |2019-12-30 |    1.0    |  Letter   | init version 
- * |2025-10-31 |    1.1    |  awesome  | modify to c style 
+ * |2025-10-31 |    1.1    |  Awesome  | modify to c style 
+ * |2025-11-03 |    1.2    |  Awesome  | merge ext.c to shell.c
  * ********************************************************
  */
 
@@ -37,7 +38,7 @@ typedef enum {
 } SHELL_CMD_TYPE_E;
 
 /*! shell text enum */
-enum {
+enum shell_text_e {
     SHELL_TEXT_INFO,                        /**< shell info */
     SHELL_TEXT_CMD_TOO_LONG,                /**< cmd too long */
     SHELL_TEXT_CMD_LIST,                    /**< cmd list */
@@ -64,7 +65,7 @@ enum {
 /*! shell assert */
 #define SHELL_ASSERT(expr) \
         if(!(expr)) {                                                         \
-            shell_print("Assert failed: %s, line %d\n", __FILE__, __LINE__); \
+            printf("Assert failed: %s, line %d\n", __FILE__, __LINE__);       \
             while(1) {                                                        \
             }                                                                 \
         }
@@ -318,5 +319,26 @@ shell_cmd_t *shell_seek_cmd(shell_t *shell,
                             const char *cmd,
                             shell_cmd_t *base,
                             uint16_t compare_length);
+
+/*-----------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------*/                            
+/*------------------------------- shell register -----------------------------*/                            
+/*-----------------------------------------------------------------------------*/                            
+/*-----------------------------------------------------------------------------*/                            
+/**
+ * ---------------------------------------
+ *  number type
+ * ---------------------------------------
+ */
+typedef enum shell_num_type_e
+{
+    NUM_TYPE_DEC,                      /**< decimal */
+    NUM_TYPE_BIN,                      /**< binary */
+    NUM_TYPE_OCT,                      /**< octal */
+    NUM_TYPE_HEX,                      /**< hex */
+    NUM_TYPE_FLOAT                     /**< float */
+} SHELL_NUM_TYPE_E;
+
+int shell_register_run(shell_t *shell, shell_cmd_t *command, int argc, char *argv[]);
 
 #endif/**< __SHELL_H__ */
