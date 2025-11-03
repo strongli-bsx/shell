@@ -9,21 +9,22 @@
  * @note      revision note
  * |   Date    |  version  |  author   | Description  |
  * |2025-10-28 |    1.1    |  awesome  | init version |
+ * |2025-11-03 |    5.1    |  awesome  | add weak attr|
  * ********************************************************
  */
 #include "shell_port.h"
-// #include "../src/uart_lite.h"
-// #include "xuartps.h"
+#include "../src/uart_lite.h"
+#include "xuartps.h"
 
 shell_t shell;
 uint8_t shell_buffer[512];
 
-__attribute__((weak)) int uart_send_byte(uint8_t *data, uint16_t size)
+__attribute__((weak)) int uart_send_byte(uint8_t *data, uint32_t size)
 {
     return 0;
 }
 
-__attribute__((weak)) int uart_receive(uint8_t *data, uint16_t size)
+__attribute__((weak)) int uart_receive(uint8_t *data, uint32_t size)
 {
     return 0;
 }
