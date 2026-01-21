@@ -1782,7 +1782,6 @@ void shell_handler(shell_t *shell, char data)
     }
 #endif
 
-    /* 根据记录的按键键值计算当前字节在按键键值中的偏移 */
     char keyByteOffset = 24;
     int keyFilter = 0x00000000;
     if((shell->parser.key_value & 0x0000FF00) != 0x00000000) {
@@ -1796,14 +1795,11 @@ void shell_handler(shell_t *shell, char data)
         keyFilter = 0xFF000000;
     }
 
-    /* 遍历ShellCommand列表，尝试进行按键键值匹配 */
     shell_cmd_t *base = (shell_cmd_t *)shell->command_list.base;
     for(short i = 0; i < shell->command_list.count; i++) {
-        /* 判断是否是按键定义并验证权限 */
         if(base[i].attr.para.type == SHELL_TYPE_KEY &&
            shell_check_permission(shell, &(base[i])) == 0)
         {
-            /* 对输入的字节同按键键值进行匹配 */
             if((base[i].data.key.value & keyFilter) ==
                shell->parser.key_value &&
                (base[i].data.key.value & (0xFF << keyByteOffset)) ==

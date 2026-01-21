@@ -12,6 +12,7 @@
  * |2019-12-30 |    1.0    |  Letter   | init version 
  * |2025-10-31 |    1.1    |  Awesome  | modify to c style 
  * |2025-11-03 |    1.2    |  Awesome  | merge ext.c to shell.c
+ * |2026-01-27 |    1.2    |  Awesome  | modify section setting
  * ********************************************************
  */
 
@@ -63,7 +64,7 @@ enum shell_text_e {
     SHELL_TEXT_TYPE_NONE,                   /**< none type */
 };
 /*-----------------------------------------------------------------------------*/
-#define SHELL_SEC_NAME          "shell_sec"
+#define SHELL_SEC_NAME                      "shell_sec"
 /*-----------------------------------------------------------------------------*/
 /*! shell assert */
 #define SHELL_ASSERT(expr) \
@@ -74,10 +75,10 @@ enum shell_text_e {
         }
 
 /*! attrubuted section */
-#define SHELL_SECTION(x)    __attribute__((section(x), aligned(1)))
+#define SHELL_SECTION(x)                __attribute__((section(x), aligned(1)))
 
 /*! attrubuted used */
-#define SHELL_USED          __attribute__((used))
+#define SHELL_USED                       __attribute__((used))
 /*-----------------------------------------------------------------------------*/
 // #define SHELL_LOCK(shell)                   shell->lock(shell)
 // #define SHELL_UNLOCK(shell)                 shell->unlock(shell)
@@ -105,6 +106,8 @@ enum shell_text_e {
 /*! shell param float */
 #define SHELL_PARAM_FLOAT(x)               (*(float *)(&x))
 /*-----------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------*/
 /**
  * -----------------------------------------------
  * @brief      shell cmd define
@@ -122,12 +125,31 @@ enum shell_text_e {
         shell_cmd##_name SHELL_SECTION(SHELL_SEC_NAME) =              \
         {                                                          \
             .attr.value = _attr,                                   \
-            .data.cmd.name = shellCmd##_name,                      \
+            .data.cmd.name = shell_cmd##_name,                      \
             .data.cmd.function = (int (*)()) _func,                \
-            .data.cmd.desc = shellDesc##_name,                     \
+            .data.cmd.desc = shell_desc##_name,                     \
             ##__VA_ARGS__                                          \ 
         }
-
+/**
+ * -----------------------------------------------
+ * @brief      shell key define
+ * -----------------------------------------------
+ * @param[in]  _attr : key attribute
+ * @param[in]  _value: key value
+ * @param[in]  _func : key function
+ * @param[in]  _desc : key description
+ * -----------------------------------------------
+ */
+#define SHELL_EXPORT_KEY(_attr, _value, _func, _desc)             \
+        const char shell_desc##_value[] = #_desc;                  \
+        SHELL_USED const shell_cmd_t                              \
+        shell_key##_value SHELL_SECTION(SHELL_SEC_NAME) =             \
+        {                                                         \
+            .attr.value = _attr | SHELL_CMD_TYPE(SHELL_TYPE_KEY), \
+            .data.key.value = _value,                             \
+            .data.key.function = (void (*)(shell_t *)) _func,     \
+            .data.key.desc = shell_desc##_value                    \
+        }
 /**
  * -----------------------------------------------
  * @brief      shell var define
@@ -142,14 +164,13 @@ enum shell_text_e {
         const char shellCmd##_name[] = #_name;                     \
         const char shellDesc##_name[] = #_desc;                    \
         SHELL_USED const shell_cmd_t                               \
-        shellVar##_name SHELL_SECTION(SHELL_SEC_NAME) =               \
+        shellVar##_name SHELL_SECTION(SHELL_SEC_NAME) =            \
         {                                                          \
             .attr.value = _attr,                                   \
-            .data.var.name = shellCmd##_name,                      \
+            .data.var.name = shell_cmd##_name,                      \
             .data.var.value = (void *)_value,                      \
-            .data.var.desc = shellDesc##_name                      \
+            .data.var.desc = shell_desc##_name                      \
         }
-
 
 /**
  * -----------------------------------------------
@@ -162,37 +183,16 @@ enum shell_text_e {
  * -----------------------------------------------
  */
 #define SHELL_EXPORT_USER(_attr, _name, _pasd, _desc)              \
-        const char shellCmd##_name[] = #_name;                     \
-        const char shellPassword##_name[] = #_pasd;                \
-        const char shellDesc##_name[] = #_desc;                    \
+        const char shell_cmd##_name[] = #_name;                     \
+        const char shell_password##_name[] = #_pasd;                \
+        const char shell_desc##_name[] = #_desc;                    \
         SHELL_USED const shell_cmd_t                               \
-        shellUser##_name SHELL_SECTION(SHELL_SEC_NAME) =              \
+        shell_user##_name SHELL_SECTION(SHELL_SEC_NAME) =          \
         {                                                          \
             .attr.value = _attr | SHELL_CMD_TYPE(SHELL_TYPE_USER), \
-            .data.user.name = shellCmd##_name,                     \
-            .data.user.password = shellPassword##_name,            \
-            .data.user.desc = shellDesc##_name                     \
-        }
-
-/**
- * -----------------------------------------------
- * @brief      shell key define
- * -----------------------------------------------
- * @param[in]  _attr : key attribute
- * @param[in]  _value: key value
- * @param[in]  _func : key function
- * @param[in]  _desc : key description
- * -----------------------------------------------
- */
-#define SHELL_EXPORT_KEY(_attr, _value, _func, _desc)             \
-        const char shellDesc##_value[] = #_desc;                  \
-        SHELL_USED const shell_cmd_t                              \
-        shellKey##_value SHELL_SECTION(SHELL_SEC_NAME) =             \
-        {                                                         \
-            .attr.value = _attr | SHELL_CMD_TYPE(SHELL_TYPE_KEY), \
-            .data.key.value = _value,                             \
-            .data.key.function = (void (*)(shell_t *)) _func,     \
-            .data.key.desc = shellDesc##_value                    \
+            .data.user.name = shell_cmd##_name,                     \
+            .data.user.password = shell_password##_name,            \
+            .data.user.desc = shell_desc##_name                     \
         }
 
 /*-----------------------------------------------------------------------------*/
@@ -266,7 +266,6 @@ typedef struct shell_command {
 
         int value;
     } attr; 
-
     /*! shell content */
     union {
         /*! shell cmd define */
@@ -308,16 +307,27 @@ typedef struct {
 } shell_node_var_attr_t;
 /*-----------------------------------------------------------------------------*/
 void shell_init(shell_t *shell, char *buffer, uint16_t size);
+
 void shell_remove(shell_t *shell);
+
 uint16_t shell_write_string(shell_t *shell, const char *string);
+
 void shell_print(shell_t *shell, const char *fmt, ...);
+
 void shell_scan(shell_t *shell, char *fmt, ...);
+
 void shell_handler(shell_t *shell, char data);
+
 void shell_write_end_line(shell_t *shell, char *buffer, int len);
+
 void shell_task(void *param);
+
 int shell_run(shell_t *shell, const char *cmd);
+
 shell_t *shell_get_current(void);
+
 int shell_get_var_value(shell_t *shell, shell_cmd_t *command);
+
 shell_cmd_t *shell_seek_cmd(shell_t *shell,
                             const char *cmd,
                             shell_cmd_t *base,

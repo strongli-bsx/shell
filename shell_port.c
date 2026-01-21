@@ -7,9 +7,10 @@
  * @copyright (c) 2025, AWESOME
  * ********************************************************
  * @note      revision note
- * |   Date    |  version  |  author   | Description  |
- * |2025-10-28 |    1.1    |  awesome  | init version |
- * |2025-11-03 |    5.1    |  awesome  | add weak attr|
+ * |   Date    |  version  |  author   | Description     |
+ * |2025-10-28 |    1.1    |  awesome  | init version    |
+ * |2025-11-03 |    5.1    |  awesome  | add weak attr   |
+ * |2026-01-27 |    1.2    |  Awesome  | add process bar |
  * ********************************************************
  */
 #include "shell_port.h"
