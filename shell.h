@@ -125,9 +125,9 @@ enum shell_text_e {
         shell_cmd##_name SHELL_SECTION(SHELL_SEC_NAME) =              \
         {                                                          \
             .attr.value = _attr,                                   \
-            .data.cmd.name = shell_cmd##_name,                      \
+            .data.cmd.name = shellCmd##_name,                      \
             .data.cmd.function = (int (*)()) _func,                \
-            .data.cmd.desc = shell_desc##_name,                     \
+            .data.cmd.desc = shellDesc##_name,                     \
             ##__VA_ARGS__                                          \ 
         }
 /**
@@ -141,14 +141,14 @@ enum shell_text_e {
  * -----------------------------------------------
  */
 #define SHELL_EXPORT_KEY(_attr, _value, _func, _desc)             \
-        const char shell_desc##_value[] = #_desc;                  \
+        const char shellDesc##_value[] = #_desc;                  \
         SHELL_USED const shell_cmd_t                              \
         shell_key##_value SHELL_SECTION(SHELL_SEC_NAME) =             \
         {                                                         \
             .attr.value = _attr | SHELL_CMD_TYPE(SHELL_TYPE_KEY), \
             .data.key.value = _value,                             \
             .data.key.function = (void (*)(shell_t *)) _func,     \
-            .data.key.desc = shell_desc##_value                    \
+            .data.key.desc = shellDesc##_value                    \
         }
 /**
  * -----------------------------------------------
@@ -167,9 +167,9 @@ enum shell_text_e {
         shellVar##_name SHELL_SECTION(SHELL_SEC_NAME) =            \
         {                                                          \
             .attr.value = _attr,                                   \
-            .data.var.name = shell_cmd##_name,                      \
+            .data.var.name = shellCmd##_name,                      \
             .data.var.value = (void *)_value,                      \
-            .data.var.desc = shell_desc##_name                      \
+            .data.var.desc = shellDesc##_name                      \
         }
 
 /**
@@ -183,16 +183,16 @@ enum shell_text_e {
  * -----------------------------------------------
  */
 #define SHELL_EXPORT_USER(_attr, _name, _pasd, _desc)              \
-        const char shell_cmd##_name[] = #_name;                     \
-        const char shell_password##_name[] = #_pasd;                \
-        const char shell_desc##_name[] = #_desc;                    \
+        const char shellCmd##_name[] = #_name;                     \
+        const char shellPassword##_name[] = #_pasd;                \
+        const char shellDesc##_name[] = #_desc;                    \
         SHELL_USED const shell_cmd_t                               \
         shell_user##_name SHELL_SECTION(SHELL_SEC_NAME) =          \
         {                                                          \
             .attr.value = _attr | SHELL_CMD_TYPE(SHELL_TYPE_USER), \
-            .data.user.name = shell_cmd##_name,                     \
-            .data.user.password = shell_password##_name,            \
-            .data.user.desc = shell_desc##_name                     \
+            .data.user.name = shellCmd##_name,                     \
+            .data.user.password = shellPassword##_name,            \
+            .data.user.desc = shellDesc##_name                     \
         }
 
 /*-----------------------------------------------------------------------------*/
