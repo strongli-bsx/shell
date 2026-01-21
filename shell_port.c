@@ -65,3 +65,30 @@ int func(int argc, char *argv[])
  */
 SHELL_EXPORT_CMD(SHELL_CMD_PERMISSION(0) | SHELL_CMD_TYPE (SHELL_TYPE_CMD_MAIN),
                  func, func, test);
+int process_bar(void) {
+  int width = 50;  // 
+  char bar[51] = { 0 };
+
+  for (int i = 0; i <= 100; i++) {
+    memset(bar, ' ', width);
+    bar[width] = '\0';
+
+    int fill_length = (i * width) / 100;
+
+    for (int j = 0; j < fill_length; j++) {
+      bar[j] = '#';
+    }
+
+    if (fill_length > 0 && (fill_length + 1) < width) {
+      bar[fill_length] = '-';
+      bar[fill_length + 1] = '>';
+    }
+
+    printf("\r[%s] %3d%%", bar, i);
+    fflush(stdout);
+    osal_usleep(100000);
+  }
+  printf("\n\r");
+}
+SHELL_EXPORT_CMD(SHELL_CMD_PERMISSION(0) | SHELL_CMD_TYPE(
+  SHELL_TYPE_CMD_FUNC), pro, process_bar, process bar);

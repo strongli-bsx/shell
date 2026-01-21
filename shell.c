@@ -12,6 +12,7 @@
  * |2019-12-30 |    1.0    |  Letter   | init version
  * |2025-10-31 |    1.1    |  Awesome  | modify to c style
  * |2025-11-03 |    1.2    |  Awesome  | merge ext.c to shell.c
+ * |2026-01-27 |    1.2    |  Awesome  | modify section setting
  * ********************************************************
  */
 #include <string.h>
@@ -21,10 +22,18 @@
 #include "shell_cfg.h"
 
 /*-----------------------------------------------------------------------------*/
-/*! shell command start address */
+/*! shell command section address */
+#if 0 
 extern const unsigned int _shell_command_start;
-/*! shell command end address */
 extern const unsigned int _shell_command_end;
+const uint32_t shell_sec_start = (uint32_t)&_shell_command_start;
+const uint32_t shell_sec_end = (uint32_t)&_shell_command_end;
+#else
+extern const uint32_t shell_sec$$Base;
+extern const uint32_t shell_sec$$Limit;
+const uint32_t shell_sec_start = &shell_sec$$Base;
+const uint32_t shell_sec_end  = &shell_sec$$Limit;
+#endif /**< __GNUC__ */
 /*-----------------------------------------------------------------------------*/
 /**
  * -----------------------------------------
@@ -34,7 +43,7 @@ extern const unsigned int _shell_command_end;
 const char shell_default_user[] = SHELL_DEFAULT_USER;
 const char shell_default_user_password[] = SHELL_DEFAULT_USER_PASSWORD;
 const char shell_default_user_desc[] = "default user";
-const shell_cmd_t shell_default_user_cmd SHELL_USED SHELL_SECTION("shell_cmd") =
+const shell_cmd_t shell_default_user_cmd SHELL_USED SHELL_SECTION(SHELL_SEC_NAME) =
 {
     .attr.value = SHELL_CMD_PERMISSION(0) | SHELL_CMD_TYPE(SHELL_TYPE_USER),
     .data.user.name = shell_default_user,
@@ -87,6 +96,8 @@ static const char *shell_text[] =
         "Please input password:",
     [SHELL_TEXT_PASSWORD_ERROR] =
         "\r\npassword error\r\n",
+    [SHELL_TEXT_CLEAR_TOTAL] =
+        "\033[2J\033[3J\033[1H",
     [SHELL_TEXT_CLEAR_CONSOLE] =
         "\033[2J\033[1H",
     [SHELL_TEXT_CLEAR_LINE] =
@@ -550,9 +561,9 @@ void shell_init(shell_t *shell, char *buffer, uint16_t size)
     }
 
     /*! shell command list init */
-    shell->command_list.base = (shell_cmd_t *)(&_shell_command_start);
+    shell->command_list.base = (shell_cmd_t *)(shell_sec_start);
     shell->command_list.count =
-        ((size_t)(&_shell_command_end) - (size_t)(&_shell_command_start)) /
+        ((size_t)(shell_sec_end) - (size_t)(shell_sec_start)) /
         sizeof(shell_cmd_t);
 
     shell_add(shell);
@@ -1928,6 +1939,24 @@ SHELL_EXPORT_CMD(
         SHELL_TYPE_CMD_FUNC) | SHELL_CMD_DISABLE_RETURN,
     keys, shell_keys, list all key);
 
+/**
+ * -----------------------------------------------
+ * @brief      shell clear total command
+ * @details    clear console & srcoll
+ * -----------------------------------------------
+ */
+void shell_clear_total(void)
+{
+    shell_t *shell = shell_get_current();
+    if(shell) {
+        shell_write_string(shell, shell_text[SHELL_TEXT_CLEAR_TOTAL]);
+    }
+}
+
+SHELL_EXPORT_CMD(
+    SHELL_CMD_PERMISSION(0) | SHELL_CMD_TYPE(
+        SHELL_TYPE_CMD_FUNC) | SHELL_CMD_DISABLE_RETURN,
+    cclear, shell_clear_total, clear total);
 /**
  * -----------------------------------------------
  * @brief      shell clear command
