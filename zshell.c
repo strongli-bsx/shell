@@ -23,16 +23,16 @@
 
  /*-----------------------------------------------------------------------------*/
  /*! shell command section address */
-#if 0 
+#ifdef __GNUC__
 extern const unsigned int _shell_command_start;
 extern const unsigned int _shell_command_end;
-const uint32_t shell_sec_start = (uint32_t)&_shell_command_start;
-const uint32_t shell_sec_end = (uint32_t)&_shell_command_end;
+const unsigned int shell_sec_start = (unsigned int)&_shell_command_start;
+const unsigned int shell_sec_end = (unsigned int)&_shell_command_end;
 #else
-extern const uint32_t shell_sec$$Base;
-extern const uint32_t shell_sec$$Limit;
-const uint32_t shell_sec_start = &shell_sec$$Base;
-const uint32_t shell_sec_end = &shell_sec$$Limit;
+extern const unsigned int shell_sec$$Base;
+extern const unsigned int shell_sec$$Limit;
+const unsigned int shell_sec_start = &shell_sec$$Base;
+const unsigned int shell_sec_end = &shell_sec$$Limit;
 #endif /**< __GNUC__ */
 /*-----------------------------------------------------------------------------*/
 
@@ -98,7 +98,7 @@ static const char* shell_text[] =
         "NONE",
 };
 /*-----------------------------------------------------------------------------*/
-uint8_t pairedChars[][2] = {
+char pairedChars[][2] = {
     { '\"', '\"' },
 #if SHELL_SUPPORT_ARRAY_PARAM == 1
     { '[', ']' },
@@ -112,9 +112,12 @@ uint8_t pairedChars[][2] = {
 /*-----------------------------------------------------------------------------*/
 /*! shell list */
 static shell_t* shell_list = NULL;
+
+/*! shell abort flag, set by Ctrl+C */
+volatile int shell_abort_flag = 0;
 /*-----------------------------------------------------------------------------*/
 /*! shell func declaraiton */
-static void shell_write_prompt(shell_t* shell, uint8_t newline);
+static void shell_write_prompt(shell_t* shell, char newline);
 static void shell_write_return_value(shell_t* shell, int value);
 static void shell_write_cmd_help(shell_t* shell, char* cmd);
 /*-----------------------------------------------------------------------------*/
@@ -144,9 +147,9 @@ static void shell_write_byte(shell_t* shell, char data)
  * @return     num of bytes written
  * -----------------------------------------------
  */
-uint16_t shell_write_string(shell_t* shell, const char* string)
+unsigned short shell_write_string(shell_t* shell, const char* string)
 {
-    uint16_t count = 0;
+    unsigned short count = 0;
     const char* p = string;
 
     SHELL_ASSERT(shell->write);
@@ -166,9 +169,9 @@ uint16_t shell_write_string(shell_t* shell, const char* string)
  * @return     num of bytes desc written
  * -----------------------------------------------
  */
-static uint16_t shell_write_cmd_desc(shell_t* shell, const char* string)
+static unsigned short shell_write_cmd_desc(shell_t* shell, const char* string)
 {
-    uint16_t count = 0;
+    unsigned short count = 0;
     const char* p = string;
 
     SHELL_ASSERT(shell->write);
@@ -200,7 +203,7 @@ static uint16_t shell_write_cmd_desc(shell_t* shell, const char* string)
  * @param[in]  newline: whether to write a newline
  * -----------------------------------------------
  */
-static void shell_write_prompt(shell_t* shell, uint8_t newline)
+static void shell_write_prompt(shell_t* shell, char newline)
 {
     if (newline) {
         shell_write_string(shell, "\r\n");
@@ -225,7 +228,7 @@ static void shell_write_prompt(shell_t* shell, uint8_t newline)
 signed char shell_to_hex(unsigned int value, char* buffer)
 {
     char byte;
-    uint8_t i = 8;
+    int i = 8;
     buffer[8] = 0;
     while (value) {
         byte = value & 0x0000000F;
@@ -247,7 +250,7 @@ signed char shell_to_hex(unsigned int value, char* buffer)
  */
 signed char shell_to_dec(int value, char* buffer)
 {
-    uint8_t i = 11;
+    int i = 11;
     int v = value;
     if (value < 0) {
         v = -value;
@@ -276,9 +279,9 @@ signed char shell_to_dec(int value, char* buffer)
  * @return     string length
  * -----------------------------------------------
  */
-static uint16_t shell_string_copy(char* dest, char* src)
+static unsigned short shell_string_copy(char* dest, char* src)
 {
-    uint16_t count = 0;
+    unsigned short count = 0;
     while (*(src + count)) {
         *(dest + count) = *(src + count);
         count++;
@@ -297,10 +300,10 @@ static uint16_t shell_string_copy(char* dest, char* src)
  * @return     match length
  * -----------------------------------------------
  */
-static uint16_t shell_string_compare(char* dest, char* src)
+static unsigned short shell_string_compare(char* dest, char* src)
 {
-    uint16_t match = 0;
-    uint16_t i = 0;
+    unsigned short match = 0;
+    unsigned short i = 0;
 
     while (*(dest + i) && *(src + i)) {
         if (*(dest + i) != *(src + i)) {
@@ -323,7 +326,7 @@ static uint16_t shell_string_compare(char* dest, char* src)
  * @param[in]  size  : shell buf size
  * ----------------------------------------------
  */
-void shell_init(shell_t* shell, char* buffer, uint16_t size)
+void shell_init(shell_t* shell, char* buffer, unsigned short size)
 {
     /*! shell info init */
     // shell->info.sh_cmd = NULL;
@@ -419,7 +422,7 @@ void shell_list_command(shell_t* shell)
  * @param[in]  length : delete length
  * -----------------------------------------------
  */
-void shell_delete_command_line(shell_t* shell, uint8_t length)
+void shell_delete_command_line(shell_t* shell, unsigned short length)
 {
     while (length--) {
         shell_write_string(shell, "\b \b");
@@ -548,21 +551,21 @@ void shell_delete_byte(shell_t* shell, signed char direction)
  * @return     int : split string number
  * -----------------------------------------------
  */
-int shell_split(char* string, uint16_t strLen, char* array[], char splitKey,
+int shell_split(char* string, unsigned short strLen, char* array[], char splitKey,
     short maxNum)
 {
-    uint8_t record = 1;
-    uint8_t pairedLeft[16] = {
+    int record = 1;
+    char pairedLeft[16] = {
         0
     };
-    uint8_t pariedCount = 0;
+    int pariedCount = 0;
     int count = 0;
 
     for (short i = 0; i < maxNum; i++) {
         array[i] = NULL;
     }
 
-    for (uint16_t i = 0; i < strLen; i++) {
+    for (unsigned short i = 0; i < strLen; i++) {
         if (pariedCount == 0) {
             if (string[i] != splitKey && record == 1 && count < maxNum) {
                 array[count++] = &(string[i]);
@@ -579,7 +582,7 @@ int shell_split(char* string, uint16_t strLen, char* array[], char splitKey,
             }
         }
 
-        for (uint8_t j = 0; j < sizeof(pairedChars) / 2; j++) {
+        for (int j = 0; j < (int)(sizeof(pairedChars) / 2); j++) {
             if (pariedCount > 0 && string[i] == pairedChars[j][1] &&
                 pairedLeft[pariedCount - 1] == pairedChars[j][0])
             {
@@ -625,8 +628,8 @@ static void shell_parser_param(shell_t* shell)
  */
 static void shell_remove_param_quotes(shell_t* shell)
 {
-    uint16_t paramLength;
-    for (uint16_t i = 0; i < shell->parser.param_count; i++) {
+    unsigned short paramLength;
+    for (unsigned short i = 0; i < shell->parser.param_count; i++) {
         if (shell->parser.param[i][0] == '\"') {
             shell->parser.param[i][0] = 0;
             shell->parser.param[i] = &shell->parser.param[i][1];
@@ -654,12 +657,12 @@ static void shell_remove_param_quotes(shell_t* shell)
 shell_cmd_t* shell_seek_cmd(shell_t* shell,
     const char* cmd,
     shell_cmd_t* base,
-    uint16_t compare_length)
+    unsigned short compare_length)
 {
     const char* name;
-    uint16_t count = shell->command_list.count -
+    unsigned short count = shell->command_list.count -
         ((size_t)base - (size_t)shell->command_list.base) / sizeof(shell_cmd_t);
-    for (uint16_t i = 0; i < count; i++) {
+    for (unsigned short i = 0; i < count; i++) {
         if (base[i].attr.para.type == SHELL_TYPE_KEY)
         {
             continue;
@@ -941,10 +944,10 @@ KEY_REGISTER(0x1B5B4400, shell_left, left);
  */
 void shell_tab(shell_t *shell)
 {
-    uint16_t maxMatch = shell->parser.buffer_size;
-    uint16_t lastMatchIndex = 0;
-    uint16_t matchNum = 0;
-    uint16_t length;
+    unsigned short maxMatch = shell->parser.buffer_size;
+    unsigned short lastMatchIndex = 0;
+    unsigned short matchNum = 0;
+    unsigned short length;
 
     const char *cmd_name = NULL;
 
@@ -1055,6 +1058,24 @@ void shell_enter(shell_t* shell)
 
 KEY_REGISTER(0x0A000000, shell_enter, enter);
 KEY_REGISTER(0x0D000000, shell_enter, enter);
+
+/**
+ * -----------------------------------------------
+ * @brief      shell Ctrl+C key input
+ * @details   abort current input line, like bash Ctrl+C
+ * @param[in]  shell : shell struct
+ * -----------------------------------------------
+ */
+void shell_ctrl_c(shell_t *shell)
+{
+    shell->parser.length = 0;
+    shell->parser.cursor = 0;
+    shell->parser.key_value = 0;
+    shell_write_string(shell, "^C");
+    shell_write_prompt(shell, 1);
+}
+
+KEY_REGISTER(0x03000000, shell_ctrl_c, ctrl+c);
 
 // /**
 //  * -----------------------------------------------
@@ -1177,6 +1198,46 @@ void shell_task(void* param)
     while (1) {
         if (shell->read && shell->read(&data, 1) == 1) {
             shell_handler(shell, data);
+        }
+    }
+}
+
+/**
+ * -----------------------------------------------
+ * @brief      check if shell was aborted by Ctrl+C
+ * @details   called by long-running commands to check abort flag,
+ *            returns 1 and resets flag if abort was requested
+ * @return     1 if aborted, 0 if not
+ * -----------------------------------------------
+ */
+int shell_is_aborted(void)
+{
+    if (shell_abort_flag) {
+        shell_abort_flag = 0;
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * -----------------------------------------------
+ * @brief      poll UART for Ctrl+C during command execution
+ * @details   non-blocking read, sets abort flag if 0x03 received.
+ *            call this periodically inside long-running commands.
+ * -----------------------------------------------
+ */
+void shell_abort_check(void)
+{
+    shell_t *shell = shell_list;
+    if (!shell || !shell->read) {
+        return;
+    }
+    char data;
+    while (shell->read(&data, 1) == 1) {
+        if (data == 0x03) {
+            shell_abort_flag = 1;
+            shell_write_string(shell, "^C\r\n");
+            return;
         }
     }
 }

@@ -44,7 +44,7 @@ enum shell_text_e {
     SHELL_TEXT_TYPE_NONE,                   /**< none type */
 };
 /*-----------------------------------------------------------------------------*/
-#define SHELL_SEC_NAME                      "shell_sec"
+#define SHELL_SEC_NAME                      ".shell_sec"
 /*-----------------------------------------------------------------------------*/
 /*! shell assert */
 #define SHELL_ASSERT(expr) \
@@ -120,37 +120,37 @@ typedef struct {
     const char *user_name;                        /**< user name */
     /*! shell parser */
     struct {
-        uint16_t length;                          /**< input length */
-        uint16_t cursor;                          /**< current cursor */
+        unsigned short length;                          /**< input length */
+        unsigned short cursor;                          /**< current cursor */
         char *buffer;                             /**< input buffer */
         char *param[SHELL_PARAMETER_MAX_NUMBER];  /**< param */
-        uint16_t buffer_size;                     /**< input buffer size */
-        uint16_t param_count;                     /**< parameter number */
+        unsigned short buffer_size;                     /**< input buffer size */
+        unsigned short param_count;                     /**< parameter number */
         int key_value;                            /**< input key value */
     } parser;
 
     /*! shell history cmds */
     struct {
         char *item[SHELL_HISTORY_MAX_NUMBER];     /**< history cmds */
-        uint16_t number;                          /**< history cmds number */
-        uint16_t record;                          /**< current history record */
+        unsigned short number;                          /**< history cmds number */
+        unsigned short record;                          /**< current history record */
         signed short offset;                      /**< current history offset */
     } history;
 
     /*! shell command list */
     struct {
         void *base;                               /**< cmd list base addr */
-        uint16_t count;                           /**< cmd num */
+        unsigned short count;                           /**< cmd num */
     } command_list;
     
     /*! shell status */
     struct {
-        uint8_t tab_flag   : 1;             /**< tab flag */
+        unsigned int tab_flag   : 1;             /**< tab flag */
     } status;
 
     /*! shell read & write function */
-    signed short (*read)(char *, uint16_t);      /**< shell read function */
-    signed short (*write)(char *, uint16_t);     /**< shell write function */
+    signed short (*read)(char *, unsigned short);      /**< shell read function */
+    signed short (*write)(char *, unsigned short);     /**< shell write function */
 
 } shell_t;
 
@@ -160,7 +160,7 @@ typedef struct shell_command {
     union {
         struct {
             SHELL_CMD_TYPE_E type : 4;       /**< command type */
-            uint8_t disable_return : 1;      /**< disable return value */
+            unsigned int disable_return : 1;      /**< disable return value */
         } para;
         int value;
     } attr; 
@@ -185,9 +185,9 @@ typedef struct shell_command {
 } shell_cmd_t;
 
 /*-----------------------------------------------------------------------------*/
-void shell_init(shell_t *shell, char *buffer, uint16_t size);
+void shell_init(shell_t *shell, char *buffer, unsigned short size);
 
-uint16_t shell_write_string(shell_t *shell, const char *string);
+unsigned short shell_write_string(shell_t *shell, const char *string);
 
 void shell_handler(shell_t *shell, char data);
 
@@ -198,7 +198,11 @@ int shell_run(shell_t *shell, const char *cmd);
 shell_cmd_t *shell_seek_cmd(shell_t *shell,
                             const char *cmd,
                             shell_cmd_t *base,
-                            uint16_t compare_length);
+                            unsigned short compare_length);
+
+void shell_ctrl_c(shell_t *shell);
+void shell_abort_check(void);
+int  shell_is_aborted(void);
 
 /*-----------------------------------------------------------------------------*/
 /*-----------------------------------------------------------------------------*/                            

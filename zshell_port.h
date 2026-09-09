@@ -18,6 +18,6 @@
 #include "zshell.h"
 extern shell_t shell;
 
-void init_shell(void);
+void shell_create(shell_t *shell, char *buffer, unsigned short size);
 
 #endif /*< __SHELL_PORT_H__ */

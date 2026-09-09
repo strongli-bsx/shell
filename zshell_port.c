@@ -5,59 +5,62 @@
  * @version   1.0
  * @author    awesome
  * @copyright (c) 2025, AWESOME
- * ********************************************************
+ * ************************************************************
  * @note      revision note
- * |   Date    |  version  |  author   | Description  |
- * |2025-10-28 |    1.1    |  awesome  | init version |
- * |2025-11-03 |    5.1    |  awesome  | add weak attr|
- * ********************************************************
+ * |   Date    |  version  |  author   | Description        |
+ * |2025-10-28 |    1.1    |  awesome  | init version       |
+ * |2025-11-03 |    5.1    |  awesome  | add weak attr      |
+ * |2026-09-09 |    5.2    |  awesome  | rename shell_create|
+ * ************************************************************
  */
 #include "zshell_port.h"
-#include "../Bsp/usart/bsp_debug_usart.h"
+#include <stdio.h>
+#include <string.h>
 
-shell_t shell;
-uint8_t shell_buffer[512];
-
-__attribute__((weak)) int uart_send_byte(uint8_t *data, uint32_t size)
+/*-------------------------------------------*/
+/* uart driver */
+#include "xuartps_hw.h"
+#include "xparameters.h"
+#include <sleep.h>
+/*-----------------------------------------*/
+__attribute__((weak)) int uart_send_byte(char *data, int size)
 {
-    for(int i = 0; i < size; ++i)
-    {
-        USART_SendData(USART1, data[i]);
-        while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET)
-        {
-        }
+    for (int i = 0; i < size; i++) {
+        while (!XUartPs_IsTransmitFifoEmpty(STDOUT_BASEADDRESS)) { }
+        XUartPs_SendByte(STDOUT_BASEADDRESS, (unsigned char)data[i]);
     }
     return size;
 }
 
-__attribute__((weak)) int uart_receive(uint8_t *data, uint32_t size)
+__attribute__((weak)) int uart_receive(char *data, int size)
 {
-    if(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET)
-    {
+    /* shell_task 每次调用 size == 1，非阻塞读单字节 */
+    (void)size;
+    if (!XUartPs_IsReceiveData(STDIN_BASEADDRESS)) {
         return 0;
     }
-    *data = USART_ReceiveData(USART1);
+    *data = (char)XUartPs_RecvByte(STDIN_BASEADDRESS);
     return 1;
 }
 
-int shell_write(uint8_t *data, uint16_t size)
+signed short shell_write(char *data, unsigned short size)
 {
-    return uart_send_byte(data, size);
+    return (signed short)uart_send_byte(data, size);
 }
 
-int shell_read(uint8_t *data, uint16_t size)
+signed short shell_read(char *data, unsigned short size)
 {
-    return uart_receive(data, size);
+    return (signed short)uart_receive(data, size);
 }
 
-void init_shell(void)
+void shell_create(shell_t *shell, char *buffer, unsigned short size)
 {
-    shell.write = shell_write;
-    shell.read = shell_read;
-    shell_init(&shell, shell_buffer, 512);
+    shell->write = shell_write;
+    shell->read = shell_read;
+    shell_init(shell, buffer, size);
 }
 
-int func(int b, int a)
+int test_add_func(int b, int a)
 {
     // printf("%d parameter(s)\r\n", argc - 1);
     // for (char i = 1; i < argc; i++)
@@ -67,7 +70,7 @@ int func(int b, int a)
     printf("%d = %d + %d\r\n", b + a, b, a);
     return 0;
 }
-
+CMD_REGISTER(SHELL_CMD_ENABLE_RETURN, func_add, test_add_func, test demo add);
 /*
  * @param 1 attr
  * @param 2 name
@@ -75,12 +78,16 @@ int func(int b, int a)
  * @param 4 desc
  * @param ...
  */
-CMD_REGISTER(SHELL_CMD_ENABLE_RETURN, func, func, test);
 int process_bar(void) {
   int width = 50;  // 
   char bar[51] = { 0 };
 
   for (int i = 0; i <= 100; i++) {
+    shell_abort_check();
+    if (shell_is_aborted()) {
+      printf("\n\r");
+      return -1;
+    }
     memset(bar, ' ', width);
     bar[width] = '\0';
 
@@ -97,7 +104,7 @@ int process_bar(void) {
 
     printf("\r[%s] %3d%%", bar, i);
     fflush(stdout);
-    osal_usleep(1000);
+    usleep(10000);
   }
   printf("\n\r");
   return 10;

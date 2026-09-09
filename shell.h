@@ -128,7 +128,7 @@ enum shell_text_e {
             .data.cmd.name = cmd##_name,                      \
             .data.cmd.function = (int (*)()) _func,                \
             .data.cmd.desc = cmd_desc##_name,                     \
-            ##__VA_ARGS__                                          \ 
+            ##__VA_ARGS__                                          \
         }
 /**
  * -----------------------------------------------
@@ -211,39 +211,39 @@ typedef struct {
 
     /*! shell parser */
     struct {
-        uint16_t length;                          /**< input length */
-        uint16_t cursor;                          /**< current cursor */
+        unsigned short length;                    /**< input length */
+        unsigned short cursor;                    /**< current cursor */
         char *buffer;                             /**< input buffer */
         char *param[SHELL_PARAMETER_MAX_NUMBER];  /**< param */
-        uint16_t buffer_size;                     /**< input buffer size */
-        uint16_t param_count;                     /**< parameter number */
+        unsigned short buffer_size;               /**< input buffer size */
+        unsigned short param_count;               /**< parameter number */
         int key_value;                            /**< input key value */
     } parser;
 
     /*! shell history cmds */
     struct {
         char *item[SHELL_HISTORY_MAX_NUMBER];     /**< history cmds */
-        uint16_t number;                          /**< history cmds number */
-        uint16_t record;                          /**< current history record */
+        unsigned short number;                    /**< history cmds number */
+        unsigned short record;                    /**< current history record */
         signed short offset;                      /**< current history offset */
     } history;
 
     /*! shell command list */
     struct {
         void *base;                               /**< cmd list base addr */
-        uint16_t count;                           /**< cmd num */
+        unsigned short count;                     /**< cmd num */
     } command_list;
     
     /*! shell status */
     struct {
-        uint8_t is_checked : 1;             /**< password checked */
-        uint8_t is_active  : 1;             /**< active shell */
-        uint8_t tab_flag   : 1;             /**< tab flag */
+        unsigned char is_checked : 1;       /**< password checked */
+        unsigned char is_active  : 1;       /**< active shell */
+        unsigned char tab_flag   : 1;       /**< tab flag */
     } status;
 
     /*! shell read & write function */
-    signed short (*read)(char *, uint16_t);      /**< shell read function */
-    signed short (*write)(char *, uint16_t);     /**< shell write function */
+    signed short (*read)(char *, unsigned short); /**< shell read function */
+    signed short (*write)(char *, unsigned short);/**< shell write function */
 
     /*! shell lock & unlock function */
     // int (*lock)(struct shell_def *);         /**< shell 加锁 */
@@ -255,13 +255,13 @@ typedef struct shell_command {
     /*! shell cmd attribute */
     union {
         struct {
-            uint8_t permission : 8;          /**< command authority */
-            SHELL_CMD_TYPE_E type : 4;       /**< command type */
-            uint8_t enable_unchecked : 1;    /**< enable with unchecked */
-            uint8_t disable_return : 1;      /**< disable return value */
-            uint8_t read_only : 1;           /**< read only */
-            uint8_t reserve : 1;             /**< reserve */
-            uint8_t param_num : 4;           /**< parameter number */
+            unsigned int permission : 8;     /**< command authority */
+            unsigned int type : 4;           /**< command type */
+            unsigned int enable_unchecked : 1; /**< enable with unchecked */
+            unsigned int disable_return : 1; /**< disable return value */
+            unsigned int read_only : 1;      /**< read only */
+            unsigned int reserve : 1;        /**< reserve */
+            unsigned int param_num : 4;      /**< parameter number */
         } para;
 
         int value;
@@ -306,11 +306,11 @@ typedef struct {
     int (*set)(); /**< 变量set方法 */
 } shell_node_var_attr_t;
 /*-----------------------------------------------------------------------------*/
-void shell_init(shell_t *shell, char *buffer, uint16_t size);
+void shell_init(shell_t *shell, char *buffer, unsigned short size);
 
 void shell_remove(shell_t *shell);
 
-uint16_t shell_write_string(shell_t *shell, const char *string);
+unsigned short shell_write_string(shell_t *shell, const char *string);
 
 void shell_print(shell_t *shell, const char *fmt, ...);
 
@@ -320,7 +320,7 @@ void shell_handler(shell_t *shell, char data);
 
 void shell_write_end_line(shell_t *shell, char *buffer, int len);
 
-void shell_task(void *param);
+void shell_task(shell_t *param);
 
 int shell_run(shell_t *shell, const char *cmd);
 
@@ -331,7 +331,7 @@ int shell_get_var_value(shell_t *shell, shell_cmd_t *command);
 shell_cmd_t *shell_seek_cmd(shell_t *shell,
                             const char *cmd,
                             shell_cmd_t *base,
-                            uint16_t compare_length);
+                            unsigned short compare_length);
 
 /*-----------------------------------------------------------------------------*/
 /*-----------------------------------------------------------------------------*/                            
